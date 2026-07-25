@@ -46,6 +46,7 @@ class LanguageDetector {
         initializePortuguesePatterns()
         initializeGermanPatterns()
         initializeSwedishPatterns()  // #50: Swedish dictionary is bundled — add detection
+        initializeVietnamesePatterns()
     }
 
     /**
@@ -196,6 +197,31 @@ class LanguageDetector {
             "den", "av", "är", "på", "var", "jag", "till", "kan", "om", "vi"
         )
         languageCommonWords["sv"] = svWords
+    }
+
+    /**
+     * Initialize Vietnamese language patterns
+     */
+    private fun initializeVietnamesePatterns() {
+        val viChars = mapOf(
+            'n' to 11.1f,
+            'a' to 11.2f,
+            'h' to 8.7f,
+            'g' to 6.9f,
+            'i' to 6.6f,
+            't' to 6.0f,
+            'o' to 5.5f,
+            'c' to 5.1f,
+            'e' to 4.8f,
+            'u' to 4.5f
+        )
+        languageCharFreqs["vi"] = viChars
+
+        val viWords = arrayOf(
+            "và", "của", "là", "có", "trong", "cho", "được", "không", "một", "với",
+            "những", "người", "khi", "đã", "các", "như", "để", "ở", "về", "ra"
+        )
+        languageCommonWords["vi"] = viWords
     }
 
     /**

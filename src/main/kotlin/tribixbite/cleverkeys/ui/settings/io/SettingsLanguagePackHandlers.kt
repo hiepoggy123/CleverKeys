@@ -87,6 +87,7 @@ internal fun SettingsActivity.getLanguageDisplayName(code: String): String {
         "ms" -> "Malay (Bahasa Melayu)"
         "sw" -> "Swahili (Kiswahili)"
         "tl" -> "Tagalog (Filipino)"
+        "vi" -> "Vietnamese (Tiếng Việt)"
         else -> code.uppercase()
     }
 }

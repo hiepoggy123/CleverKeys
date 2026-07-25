@@ -83,7 +83,8 @@ class DictionaryManagerActivity : AppCompatActivity() {
             "id" to "ID",
             "ms" to "MS",
             "sw" to "SW",
-            "tl" to "TL"
+            "tl" to "TL",
+            "vi" to "VI"
         )
     }
 
