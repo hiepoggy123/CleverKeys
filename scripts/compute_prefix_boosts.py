@@ -81,7 +81,7 @@ def read_binary_dictionary(path: str) -> dict:
 def read_json_dictionary(path: str) -> dict:
     """Read JSON dictionary format (word → frequency)."""
     try:
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
             result = {}
             for word, freq in data.items():
@@ -354,7 +354,7 @@ def process_language(
 
     # Also save JSON for debugging (optional)
     json_output = os.path.join(output_dir, f'{lang_code}.json')
-    with open(json_output, 'w') as f:
+    with open(json_output, 'w', encoding='utf-8') as f:
         json.dump({
             'version': 2,
             'format': 'aho-corasick-trie',
