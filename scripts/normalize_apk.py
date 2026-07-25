@@ -98,7 +98,9 @@ def normalize_resources_arsc(data: bytes, path_mappings: dict[str, str]) -> byte
 
 def normalize_apk(input_apk: str, output_apk: str, sign: bool = False,
                   keystore: str = None, key_alias: str = None,
-                  store_pass: str = None, key_pass: str = None) -> bool:
+                  store_pass: str = None, key_pass: str = None,
+                  zipalign_path: str = 'zipalign',
+                  apksigner_path: str = 'apksigner') -> bool:
     """
     Normalize an APK by removing -v4 suffixes from resource paths.
 
@@ -130,43 +132,43 @@ def normalize_apk(input_apk: str, output_apk: str, sign: bool = False,
         if not path_mappings:
             print("No paths need normalization")
             shutil.copy(input_apk, output_apk)
-            return True
+            # Do NOT return early here, as we still need to zipalign and sign if requested
+        else:
+            print(f"Normalizing {len(path_mappings)} resource paths...")
 
-        print(f"Normalizing {len(path_mappings)} resource paths...")
+            # Create output APK
+            with zipfile.ZipFile(output_apk, 'w', zipfile.ZIP_DEFLATED) as zout:
+                for info in zin.infolist():
+                    data = zin.read(info.filename)
 
-        # Create output APK
-        with zipfile.ZipFile(output_apk, 'w', zipfile.ZIP_DEFLATED) as zout:
-            for info in zin.infolist():
-                data = zin.read(info.filename)
-
-                # Determine output filename
-                if info.filename in path_mappings:
-                    new_info = zipfile.ZipInfo(path_mappings[info.filename])
-                    new_info.compress_type = info.compress_type
-                    new_info.external_attr = info.external_attr
-                    # Use fixed timestamp for reproducibility
-                    new_info.date_time = (1981, 1, 1, 0, 1, 0)
-                    zout.writestr(new_info, data)
-                elif info.filename == 'resources.arsc':
-                    # Update resource paths in ARSC file
-                    modified_data = normalize_resources_arsc(data, path_mappings)
-                    new_info = zipfile.ZipInfo(info.filename)
-                    new_info.compress_type = zipfile.ZIP_STORED  # ARSC is stored uncompressed
-                    new_info.external_attr = info.external_attr
-                    new_info.date_time = (1981, 1, 1, 0, 1, 0)
-                    zout.writestr(new_info, modified_data)
-                else:
-                    # Copy as-is but normalize timestamp
-                    new_info = zipfile.ZipInfo(info.filename)
-                    new_info.compress_type = info.compress_type
-                    new_info.external_attr = info.external_attr
-                    new_info.date_time = (1981, 1, 1, 0, 1, 0)
-                    zout.writestr(new_info, data)
+                    # Determine output filename
+                    if info.filename in path_mappings:
+                        new_info = zipfile.ZipInfo(path_mappings[info.filename])
+                        new_info.compress_type = info.compress_type
+                        new_info.external_attr = info.external_attr
+                        # Use fixed timestamp for reproducibility
+                        new_info.date_time = (1981, 1, 1, 0, 1, 0)
+                        zout.writestr(new_info, data)
+                    elif info.filename == 'resources.arsc':
+                        # Update resource paths in ARSC file
+                        modified_data = normalize_resources_arsc(data, path_mappings)
+                        new_info = zipfile.ZipInfo(info.filename)
+                        new_info.compress_type = zipfile.ZIP_STORED  # ARSC is stored uncompressed
+                        new_info.external_attr = info.external_attr
+                        new_info.date_time = (1981, 1, 1, 0, 1, 0)
+                        zout.writestr(new_info, modified_data)
+                    else:
+                        # Copy as-is but normalize timestamp
+                        new_info = zipfile.ZipInfo(info.filename)
+                        new_info.compress_type = info.compress_type
+                        new_info.external_attr = info.external_attr
+                        new_info.date_time = (1981, 1, 1, 0, 1, 0)
+                        zout.writestr(new_info, data)
 
     # Zipalign the APK
     aligned_apk = output_apk + '.aligned'
     try:
-        subprocess.run(['zipalign', '-f', '4', output_apk, aligned_apk],
+        subprocess.run([zipalign_path, '-f', '4', output_apk, aligned_apk],
                       check=True, capture_output=True)
         shutil.move(aligned_apk, output_apk)
         print("APK aligned successfully")
@@ -186,7 +188,7 @@ def normalize_apk(input_apk: str, output_apk: str, sign: bool = False,
         try:
             # Try apksigner first (preferred)
             subprocess.run([
-                'apksigner', 'sign',
+                apksigner_path, 'sign',
                 '--ks', keystore,
                 '--ks-key-alias', key_alias,
                 '--ks-pass', f'pass:{store_pass}',
@@ -225,6 +227,8 @@ def main():
     parser.add_argument('--key-alias', help='Key alias in keystore')
     parser.add_argument('--store-pass', help='Keystore password')
     parser.add_argument('--key-pass', help='Key password')
+    parser.add_argument('--zipalign-path', default='zipalign', help='Path to zipalign')
+    parser.add_argument('--apksigner-path', default='apksigner', help='Path to apksigner')
 
     args = parser.parse_args()
 
@@ -239,7 +243,9 @@ def main():
         keystore=args.keystore,
         key_alias=args.key_alias,
         store_pass=args.store_pass,
-        key_pass=args.key_pass
+        key_pass=args.key_pass,
+        zipalign_path=args.zipalign_path,
+        apksigner_path=args.apksigner_path
     )
 
     sys.exit(0 if success else 1)

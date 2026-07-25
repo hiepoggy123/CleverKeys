@@ -126,9 +126,9 @@ def load_blocklist() -> frozenset:
 
 def _is_latin_word(word: str) -> bool:
     """True iff `word` is composed only of Latin letters (accented allowed)
-    plus apostrophe/hyphen. False for Greek/Cyrillic/CJK letters and symbols."""
+    plus apostrophe/hyphen/space. False for Greek/Cyrillic/CJK letters and symbols."""
     for ch in word:
-        if ch in "'-":
+        if ch in "'- ":
             continue
         try:
             name = unicodedata.name(ch)

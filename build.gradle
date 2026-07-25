@@ -596,7 +596,7 @@ tasks.register('buildKeyboardFont') {
 tasks.register('genEmojis') {
   def outFile = file("res/raw/emojis.txt")
   if (outFile.exists() && outFile.length() > 1000) return
-  exec { workingDir = projectDir; commandLine "python3", "gen_emoji.py"; ignoreExitValue = true }
+  exec { workingDir = projectDir; commandLine "python", "gen_emoji.py"; ignoreExitValue = true }
 }
 
 tasks.withType(Test).configureEach {
@@ -606,12 +606,12 @@ tasks.withType(Test).configureEach {
 tasks.register('genLayoutsList') {
   def outFile = file("res/values/layouts.xml")
   if (outFile.exists() && outFile.length() > 100) return
-  exec { workingDir = projectDir; commandLine "python3", "gen_layouts.py"; ignoreExitValue = true }
+  exec { workingDir = projectDir; commandLine "python", "gen_layouts.py"; ignoreExitValue = true }
 }
 
 tasks.register('checkKeyboardLayouts') {
   if (!file("res/values/layouts.xml").exists()) return
-  exec { workingDir = projectDir; commandLine "python3", "tools/check_layout.py"; ignoreExitValue = true }
+  exec { workingDir = projectDir; commandLine "python", "tools/check_layout.py"; ignoreExitValue = true }
 }
 
 tasks.register('generateBinaryDictionaries') {
@@ -634,7 +634,7 @@ tasks.register('generateBinaryDictionaries') {
             return  // continue to next json
           }
         }
-        exec { workingDir = projectDir; commandLine "python3", "scripts/generate_binary_dict.py", jsonFile.absolutePath, binFile.absolutePath }
+        exec { workingDir = projectDir; commandLine "python", "scripts/generate_binary_dict.py", jsonFile.absolutePath, binFile.absolutePath }
       }
     }
   }
@@ -647,7 +647,7 @@ tasks.register('generateBinaryContractions') {
     if (!binFile.exists()) {
       exec {
         workingDir = projectDir
-        commandLine "python3", "scripts/generate_binary_contractions.py",
+        commandLine "python", "scripts/generate_binary_contractions.py",
                     new File(dictDir, "contractions_non_paired.json").absolutePath,
                     new File(dictDir, "contraction_pairings.json").absolutePath,
                     binFile.absolutePath
@@ -691,7 +691,7 @@ tasks.register('generateSettingsSearchIndex') {
   inputs.files(sectionsDir)
   outputs.file(outKt)
   doLast {
-    exec { workingDir = projectDir; commandLine "python3", script.absolutePath, outKt.absolutePath }
+    exec { workingDir = projectDir; commandLine "python", script.absolutePath, outKt.absolutePath }
   }
 }
 
@@ -702,7 +702,7 @@ tasks.register('generateComposeData') {
     def outputKt = file("src/main/kotlin/tribixbite/cleverkeys/ComposeKeyData.kt")
     if (outputBin.exists() && outputKt.exists()) return
     def jsonFiles = fileTree("srcs/compose").matching { include "*.json" }.files.collect { it.absolutePath }
-    exec { workingDir = projectDir; commandLine(["python3", "scripts/generate_compose_bin.py"] + jsonFiles + [file("srcs/compose/compose").absolutePath]) }
+    exec { workingDir = projectDir; commandLine(["python", "scripts/generate_compose_bin.py"] + jsonFiles + [file("srcs/compose/compose").absolutePath]) }
   }
 }
 
@@ -755,20 +755,27 @@ tasks.register("normalizeApkPaths") {
         def storePass = System.env.RELEASE_KEYSTORE_PASSWORD ?: "debug0"
         def keyPass = System.env.RELEASE_KEY_PASSWORD ?: "debug0"
 
+        def buildToolsDir = android.sdkDirectory.absolutePath + "/build-tools/" + android.buildToolsVersion
+        def isWin = System.getProperty("os.name").toLowerCase().contains("windows")
+        def zipalignPath = buildToolsDir + (isWin ? "/zipalign.exe" : "/zipalign")
+        def apksignerPath = buildToolsDir + (isWin ? "/apksigner.bat" : "/apksigner")
+
         apkDir.listFiles()?.findAll { it.name.endsWith(".apk") }?.each { apkFile ->
             println "Normalizing: ${apkFile.name}"
             def normalizedApk = new File(apkFile.parentFile, apkFile.name.replace(".apk", "_normalized.apk"))
 
             try {
                 exec {
-                    commandLine "python3", scriptPath.absolutePath,
+                    commandLine "python", scriptPath.absolutePath,
                         apkFile.absolutePath,
                         normalizedApk.absolutePath,
                         "--sign",
                         "--keystore", keystorePath,
                         "--key-alias", keyAlias,
                         "--store-pass", storePass,
-                        "--key-pass", keyPass
+                        "--key-pass", keyPass,
+                        "--zipalign-path", zipalignPath,
+                        "--apksigner-path", apksignerPath
                 }
 
                 // Replace original with normalized

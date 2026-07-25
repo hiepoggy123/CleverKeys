@@ -116,7 +116,7 @@ def check_layout(layout):
 # Fill 'known_keys', which is used for some checks
 def parse_known_keys():
     global known_keys
-    with open("src/main/kotlin/tribixbite/cleverkeys/KeyValue.kt", "r") as f:
+    with open("src/main/kotlin/tribixbite/cleverkeys/KeyValue.kt", "r", encoding="utf-8") as f:
         # Match both Java format (case "key":) and Kotlin format (namedKeys["key"] =)
         content = f.read()
         keys = set()
@@ -137,6 +137,6 @@ for fname in sorted(glob.glob("src/main/layouts/*.xml")):
     else:
         check_layout(layout)
 
-with open("check_layout.output", "w") as out:
+with open("check_layout.output", "w", encoding="utf-8") as out:
     for w in warnings:
         print(w, file=out)

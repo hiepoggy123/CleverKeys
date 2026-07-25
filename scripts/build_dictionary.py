@@ -90,7 +90,11 @@ def _parse_frequency(token: str) -> Optional[float]:
     try:
         # int() and float() together cover "12345", "3.5", "1e-5", "-2".
         # A leading sign or decimal point is fine; anything non-numeric raises.
-        return float(t)
+        val = float(t)
+        import math
+        if math.isnan(val) or math.isinf(val):
+            return None
+        return val
     except ValueError:
         return None
 

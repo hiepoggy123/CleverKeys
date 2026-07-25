@@ -45,7 +45,7 @@ def warn(msg, seq=None, result=None):
 
 def parse_keysymdef_h(fname):
     """Parse symbol names from keysymdef.h."""
-    with open(fname, "r") as inp:
+    with open(fname, "r", encoding="utf-8") as inp:
         keysym_re = re.compile(r'^#define XK_(\S+)\s+\S+\s*/\*.U\+([0-9a-fA-F]+)\s')
         for line in inp:
             m = re.match(keysym_re, line)
@@ -70,7 +70,7 @@ def parse_sequences_file_json(fname):
             else:
                 yield from tree_to_seqs(r, prefix + [c])
     try:
-        with open(fname, "r") as inp:
+        with open(fname, "r", encoding="utf-8") as inp:
             tree = json.loads(strip_cstyle_comments(inp))
         return list(tree_to_seqs(tree, []))
     except Exception as e:
@@ -109,7 +109,7 @@ def parse_sequences_file_xkb(fname, xkb_char_extra_names):
         return r
 
     # Populate char_names
-    with open(fname, "r") as inp:
+    with open(fname, "r", encoding="utf-8") as inp:
         for line in inp:
             m = re.match(line_re, line)
             if m is None or m.group(3) is None:
@@ -122,7 +122,7 @@ def parse_sequences_file_xkb(fname, xkb_char_extra_names):
     # Parse sequences
     prefix = "<Multi_key>"
     seqs = []
-    with open(fname, "r") as inp:
+    with open(fname, "r", encoding="utf-8") as inp:
         for line in inp:
             if not line.startswith(prefix):
                 continue
