@@ -183,6 +183,7 @@ class WordPredictor {
     // Allows O(1) atomic swap instead of O(n) putAll() on main thread during async loading
     private val dictionary: AtomicReference<MutableMap<String, Int>> = AtomicReference(mutableMapOf())
     private val prefixIndex: AtomicReference<MutableMap<String, MutableSet<String>>> = AtomicReference(mutableMapOf())
+    private val shortcuts: AtomicReference<MutableMap<String, String>> = AtomicReference(mutableMapOf())
 
     // Cached max dictionary frequency, used to scale the autocorrect frequency
     // floor (see FrequencyFloor). Recomputed lazily whenever the dictionary size
@@ -1298,6 +1299,8 @@ class WordPredictor {
      */
     private fun loadCustomAndUserWordsIntoMap(context: Context, targetMap: MutableMap<String, Int>, language: String = "en"): Set<String> {
         val loadedWords = mutableSetOf<String>()
+        val loadedShortcuts = mutableMapOf<String, String>()
+        val gson = com.google.gson.Gson()
 
         try {
             val prefs = DirectBootAwarePreferences.get_shared_preferences(context)
@@ -1331,6 +1334,23 @@ class WordPredictor {
                     Log.e(TAG, "Failed to parse custom words JSON", e)
                 }
             }
+            
+            // 1.5 Load custom shortcuts
+            val customShortcutsKey = "${customWordsKey}_shortcuts"
+            val customShortcutsJson = prefs.getString(customShortcutsKey, "{}") ?: "{}"
+            if (customShortcutsJson != "{}") {
+                try {
+                    val type = object : com.google.gson.reflect.TypeToken<MutableMap<String, String>>() {}.type
+                    val parsedShortcuts: MutableMap<String, String>? = gson.fromJson(customShortcutsJson, type)
+                    if (parsedShortcuts != null) {
+                        for ((word, shortcut) in parsedShortcuts) {
+                            loadedShortcuts[shortcut.lowercase()] = word
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to parse custom shortcuts JSON", e)
+                }
+            }
 
             // 2. Load Android user dictionary
             // v1.1.90: Filter by locale to prevent English contamination in non-English modes
@@ -1355,7 +1375,8 @@ class WordPredictor {
                     UserDictionary.Words.CONTENT_URI,
                     arrayOf(
                         UserDictionary.Words.WORD,
-                        UserDictionary.Words.FREQUENCY
+                        UserDictionary.Words.FREQUENCY,
+                        UserDictionary.Words.SHORTCUT
                     ),
                     selection,
                     selectionArgs,
@@ -1365,14 +1386,22 @@ class WordPredictor {
                 cursor?.use {
                     val wordIndex = it.getColumnIndex(UserDictionary.Words.WORD)
                     val freqIndex = it.getColumnIndex(UserDictionary.Words.FREQUENCY)
+                    val shortcutIndex = it.getColumnIndex(UserDictionary.Words.SHORTCUT)
                     var userCount = 0
 
                     while (it.moveToNext()) {
                         val originalWord = it.getString(wordIndex)
                         val lowerWord = originalWord.lowercase()
                         val frequency = if (freqIndex >= 0) it.getInt(freqIndex) else 1000
+                        val shortcut = if (shortcutIndex >= 0) it.getString(shortcutIndex) else null
+                        
                         targetMap[lowerWord] = frequency  // Write to target map, not dictionary
                         loadedWords.add(lowerWord)
+                        
+                        if (!shortcut.isNullOrBlank()) {
+                            loadedShortcuts[shortcut.lowercase()] = originalWord
+                        }
+                        
                         // v1.2.7: Preserve original case for proper nouns (Issue #72)
                         if (originalWord != lowerWord) {
                             userWordOriginalCase[lowerWord] = originalWord
@@ -1391,6 +1420,7 @@ class WordPredictor {
             Log.e(TAG, "Error loading custom/user words into new map", e)
         }
 
+        this.shortcuts.set(loadedShortcuts)
         return loadedWords
     }
 
@@ -1429,6 +1459,8 @@ class WordPredictor {
      */
     private fun loadCustomAndUserWords(context: Context, language: String = "en"): Set<String> {
         val loadedWords = mutableSetOf<String>()
+        val loadedShortcuts = mutableMapOf<String, String>()
+        val gson = com.google.gson.Gson()
 
         try {
             val prefs = DirectBootAwarePreferences.get_shared_preferences(context)
@@ -1464,6 +1496,23 @@ class WordPredictor {
                 }
             }
 
+            // 1.5 Load custom shortcuts
+            val customShortcutsKey = "${customWordsKey}_shortcuts"
+            val customShortcutsJson = prefs.getString(customShortcutsKey, "{}") ?: "{}"
+            if (customShortcutsJson != "{}") {
+                try {
+                    val type = object : com.google.gson.reflect.TypeToken<MutableMap<String, String>>() {}.type
+                    val parsedShortcuts: MutableMap<String, String>? = gson.fromJson(customShortcutsJson, type)
+                    if (parsedShortcuts != null) {
+                        for ((word, shortcut) in parsedShortcuts) {
+                            loadedShortcuts[shortcut.lowercase()] = word
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to parse custom shortcuts JSON", e)
+                }
+            }
+
             // 2. Load Android user dictionary
             // v1.1.90: Filter by locale to prevent English contamination in non-English modes
             // v1.1.91: Use LIKE for partial locale match (e.g., "fr" matches "fr", "fr_FR", "fr_CA")
@@ -1487,7 +1536,8 @@ class WordPredictor {
                     UserDictionary.Words.CONTENT_URI,
                     arrayOf(
                         UserDictionary.Words.WORD,
-                        UserDictionary.Words.FREQUENCY
+                        UserDictionary.Words.FREQUENCY,
+                        UserDictionary.Words.SHORTCUT
                     ),
                     selection,
                     selectionArgs,
@@ -1497,14 +1547,22 @@ class WordPredictor {
                 cursor?.use {
                     val wordIndex = it.getColumnIndex(UserDictionary.Words.WORD)
                     val freqIndex = it.getColumnIndex(UserDictionary.Words.FREQUENCY)
+                    val shortcutIndex = it.getColumnIndex(UserDictionary.Words.SHORTCUT)
                     var userCount = 0
 
                     while (it.moveToNext()) {
                         val originalWord = it.getString(wordIndex)
                         val lowerWord = originalWord.lowercase()
                         val frequency = if (freqIndex >= 0) it.getInt(freqIndex) else 1000
+                        val shortcut = if (shortcutIndex >= 0) it.getString(shortcutIndex) else null
+                        
                         dictionary.get()[lowerWord] = frequency
                         loadedWords.add(lowerWord)  // Track loaded word
+                        
+                        if (!shortcut.isNullOrBlank()) {
+                            loadedShortcuts[shortcut.lowercase()] = originalWord
+                        }
+                        
                         // v1.2.7: Preserve original case for proper nouns (Issue #72)
                         if (originalWord != lowerWord) {
                             userWordOriginalCase[lowerWord] = originalWord
@@ -1523,6 +1581,7 @@ class WordPredictor {
             Log.e(TAG, "Error loading custom/user words", e)
         }
 
+        this.shortcuts.set(loadedShortcuts)
         return loadedWords
     }
 
@@ -1686,6 +1745,17 @@ class WordPredictor {
                 if (BuildConfig.ENABLE_VERBOSE_LOGGING) {
                     Log.d(TAG, "Secondary dictionary: ${secondaryResults.size} matches for '$lowerSequence' (lang=$secondaryLanguageCode)")
                 }
+            }
+
+            // EXACT SHORTCUT MATCH: Inject abbreviation expansions with max score
+            // so they appear first in the suggestion bar, but autoCorrect() will NOT 
+            // aggressively replace them on space.
+            val exactShortcutTarget = shortcuts.get()[lowerSequence]
+            if (exactShortcutTarget != null) {
+                // Remove any existing candidate for the exact same target to avoid duplicates
+                candidates.removeAll { it.word == exactShortcutTarget }
+                // Add with max value so it is always the top prediction
+                candidates.add(WordCandidate(exactShortcutTarget, Int.MAX_VALUE))
             }
 
             // Sort all candidates by score (descending)

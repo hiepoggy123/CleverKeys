@@ -256,6 +256,129 @@ class CustomShortSwipeExecutor(private val context: Context) {
                 "undo" -> inputConnection.performContextMenuAction(android.R.id.undo)
                 "redo" -> inputConnection.performContextMenuAction(android.R.id.redo)
 
+                "clearall" -> {
+                    inputConnection.beginBatchEdit()
+                    inputConnection.deleteSurroundingText(10000, 10000)
+                    inputConnection.endBatchEdit()
+                    true
+                }
+
+                "bypass" -> {
+                    val allText = inputConnection.getTextBeforeCursor(200, 0)?.toString() ?: ""
+                    val lastNewline = allText.lastIndexOf('\n')
+                    val textToModify = if (lastNewline >= 0) allText.substring(lastNewline + 1) else allText
+                    
+                    if (textToModify.isNotEmpty()) {
+                        inputConnection.beginBatchEdit()
+                        inputConnection.deleteSurroundingText(textToModify.length, 0)
+                        val bypassedText = textToModify.toList().joinToString("\u200B")
+                        inputConnection.commitText(bypassedText, 1)
+                        inputConnection.endBatchEdit()
+                    }
+                    true
+                }
+
+                "bypass2" -> {
+                    val allText = inputConnection.getTextBeforeCursor(200, 0)?.toString() ?: ""
+                    val lastNewline = allText.lastIndexOf('\n')
+                    val textToModify = if (lastNewline >= 0) allText.substring(lastNewline + 1) else allText
+                    
+                    if (textToModify.isNotEmpty()) {
+                        inputConnection.beginBatchEdit()
+                        inputConnection.deleteSurroundingText(textToModify.length, 0)
+                        
+                        val bypassedText = buildString {
+                            val words = textToModify.split(Regex("(?<=\\s)|(?=\\s)"))
+                            for (word in words) {
+                                if (word.isBlank() || word.length <= 1) {
+                                    append(word)
+                                } else {
+                                    val mid = word.length / 2
+                                    append(word.substring(0, mid))
+                                    append("\u200B")
+                                    append(word.substring(mid))
+                                }
+                            }
+                        }
+                        
+                        inputConnection.commitText(bypassedText, 1)
+                        inputConnection.endBatchEdit()
+                    }
+                    true
+                }
+
+                "bypass3" -> {
+                    val allText = inputConnection.getTextBeforeCursor(200, 0)?.toString() ?: ""
+                    val lastNewline = allText.lastIndexOf('\n')
+                    val textToModify = if (lastNewline >= 0) allText.substring(lastNewline + 1) else allText
+                    
+                    if (textToModify.isNotEmpty()) {
+                        inputConnection.beginBatchEdit()
+                        inputConnection.deleteSurroundingText(textToModify.length, 0)
+                        
+                        // Decompose to NFD to separate diacritics, then replace base letters with Cyrillic homoglyphs
+                        val nfdText = java.text.Normalizer.normalize(textToModify, java.text.Normalizer.Form.NFD)
+                        val bypassedText = nfdText
+                            .replace('a', 'а') // U+0430
+                            .replace('c', 'с') // U+0441
+                            .replace('d', 'ԁ') // U+0501
+                            .replace('e', 'е') // U+0435
+                            .replace('i', 'і') // U+0456
+                            .replace('o', 'о') // U+043E
+                            .replace('p', 'р') // U+0440
+                            .replace('x', 'х') // U+0445
+                            .replace('y', 'у') // U+0443
+                            .replace('A', 'А') // U+0410
+                            .replace('C', 'С') // U+0421
+                            .replace('E', 'Е') // U+0415
+                            .replace('H', 'Н') // U+041D
+                            .replace('I', 'І') // U+0406
+                            .replace('O', 'О') // U+041E
+                            .replace('P', 'Р') // U+0420
+                            .replace('T', 'Т') // U+0422
+                            .replace('X', 'Х') // U+0425
+                            .replace('Y', 'У') // U+0423
+                            
+                        inputConnection.commitText(bypassedText, 1)
+                        inputConnection.endBatchEdit()
+                    }
+                    true
+                }
+
+                "bypass4" -> {
+                    val allText = inputConnection.getTextBeforeCursor(200, 0)?.toString() ?: ""
+                    val lastNewline = allText.lastIndexOf('\n')
+                    val textToModify = if (lastNewline >= 0) allText.substring(lastNewline + 1) else allText
+                    
+                    if (textToModify.isNotEmpty()) {
+                        inputConnection.beginBatchEdit()
+                        inputConnection.deleteSurroundingText(textToModify.length, 0)
+                        
+                        // Insert Interpunct (middle dot) between characters
+                        val bypassedText = textToModify.toList().joinToString("·")
+                        
+                        inputConnection.commitText(bypassedText, 1)
+                        inputConnection.endBatchEdit()
+                    }
+                    true
+                }
+
+                "bypass5" -> {
+                    val allText = inputConnection.getTextBeforeCursor(200, 0)?.toString() ?: ""
+                    val lastNewline = allText.lastIndexOf('\n')
+                    val textToModify = if (lastNewline >= 0) allText.substring(lastNewline + 1) else allText
+                    
+                    if (textToModify.isNotEmpty()) {
+                        inputConnection.beginBatchEdit()
+                        inputConnection.deleteSurroundingText(textToModify.length, 0)
+                        // Use Zero-Width Non-Joiner
+                        val bypassedText = textToModify.toList().joinToString("\u200C")
+                        inputConnection.commitText(bypassedText, 1)
+                        inputConnection.endBatchEdit()
+                    }
+                    true
+                }
+
                 // Cursor movement - character
                 "left" -> sendKeyEvent(inputConnection, KeyEvent.KEYCODE_DPAD_LEFT)
                 "right" -> sendKeyEvent(inputConnection, KeyEvent.KEYCODE_DPAD_RIGHT)
@@ -547,6 +670,112 @@ class CustomShortSwipeExecutor(private val context: Context) {
                         KeyEvent.KEYCODE_DEL,
                         KeyEvent.META_CTRL_ON
                     )
+                }
+
+                AvailableCommand.CLEARALL -> {
+                    inputConnection.beginBatchEdit()
+                    inputConnection.deleteSurroundingText(10000, 10000)
+                    inputConnection.endBatchEdit()
+                    true
+                }
+
+                AvailableCommand.BYPASS -> {
+                    val allText = inputConnection.getTextBeforeCursor(200, 0)?.toString() ?: ""
+                    val lastNewline = allText.lastIndexOf('\n')
+                    val textToModify = if (lastNewline >= 0) allText.substring(lastNewline + 1) else allText
+                    
+                    if (textToModify.isNotEmpty()) {
+                        inputConnection.beginBatchEdit()
+                        inputConnection.deleteSurroundingText(textToModify.length, 0)
+                        val bypassedText = textToModify.toList().joinToString("\u200B")
+                        inputConnection.commitText(bypassedText, 1)
+                        inputConnection.endBatchEdit()
+                    }
+                    true
+                }
+
+                AvailableCommand.BYPASS2 -> {
+                    val allText = inputConnection.getTextBeforeCursor(200, 0)?.toString() ?: ""
+                    val lastNewline = allText.lastIndexOf('\n')
+                    val textToModify = if (lastNewline >= 0) allText.substring(lastNewline + 1) else allText
+                    
+                    if (textToModify.isNotEmpty()) {
+                        inputConnection.beginBatchEdit()
+                        inputConnection.deleteSurroundingText(textToModify.length, 0)
+                        
+                        val bypassedText = buildString {
+                            val words = textToModify.split(Regex("(?<=\\s)|(?=\\s)"))
+                            for (word in words) {
+                                if (word.isBlank() || word.length <= 1) {
+                                    append(word)
+                                } else {
+                                    val mid = word.length / 2
+                                    append(word.substring(0, mid))
+                                    append("\u200B")
+                                    append(word.substring(mid))
+                                }
+                            }
+                        }
+                        
+                        inputConnection.commitText(bypassedText, 1)
+                        inputConnection.endBatchEdit()
+                    }
+                    true
+                }
+
+                AvailableCommand.BYPASS3 -> {
+                    val allText = inputConnection.getTextBeforeCursor(200, 0)?.toString() ?: ""
+                    val lastNewline = allText.lastIndexOf('\n')
+                    val textToModify = if (lastNewline >= 0) allText.substring(lastNewline + 1) else allText
+                    
+                    if (textToModify.isNotEmpty()) {
+                        inputConnection.beginBatchEdit()
+                        inputConnection.deleteSurroundingText(textToModify.length, 0)
+                        
+                        val nfdText = java.text.Normalizer.normalize(textToModify, java.text.Normalizer.Form.NFD)
+                        val bypassedText = nfdText
+                            .replace('a', 'а').replace('c', 'с').replace('d', 'ԁ')
+                            .replace('e', 'е').replace('i', 'і').replace('o', 'о')
+                            .replace('p', 'р').replace('x', 'х').replace('y', 'у')
+                            .replace('A', 'А').replace('C', 'С').replace('E', 'Е')
+                            .replace('H', 'Н').replace('I', 'І').replace('O', 'О')
+                            .replace('P', 'Р').replace('T', 'Т').replace('X', 'Х')
+                            .replace('Y', 'У')
+                            
+                        inputConnection.commitText(bypassedText, 1)
+                        inputConnection.endBatchEdit()
+                    }
+                    true
+                }
+
+                AvailableCommand.BYPASS4 -> {
+                    val allText = inputConnection.getTextBeforeCursor(200, 0)?.toString() ?: ""
+                    val lastNewline = allText.lastIndexOf('\n')
+                    val textToModify = if (lastNewline >= 0) allText.substring(lastNewline + 1) else allText
+                    
+                    if (textToModify.isNotEmpty()) {
+                        inputConnection.beginBatchEdit()
+                        inputConnection.deleteSurroundingText(textToModify.length, 0)
+                        val bypassedText = textToModify.toList().joinToString("·")
+                        inputConnection.commitText(bypassedText, 1)
+                        inputConnection.endBatchEdit()
+                    }
+                    true
+                }
+
+                AvailableCommand.BYPASS5 -> {
+                    val allText = inputConnection.getTextBeforeCursor(200, 0)?.toString() ?: ""
+                    val lastNewline = allText.lastIndexOf('\n')
+                    val textToModify = if (lastNewline >= 0) allText.substring(lastNewline + 1) else allText
+                    
+                    if (textToModify.isNotEmpty()) {
+                        inputConnection.beginBatchEdit()
+                        inputConnection.deleteSurroundingText(textToModify.length, 0)
+                        val bypassedText = textToModify.toList().joinToString("\u200C")
+                        inputConnection.commitText(bypassedText, 1)
+                        inputConnection.endBatchEdit()
+                    }
+                    true
                 }
 
                 // System commands - these return KeyValue for special handling

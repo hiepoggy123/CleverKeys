@@ -131,7 +131,17 @@ enum class AvailableCommand(
 
     // Language switching
     PRIMARY_LANG_TOGGLE("Toggle Primary Language", "Switch between two primary languages", "language"),
-    SECONDARY_LANG_TOGGLE("Toggle Secondary Language", "Switch between two secondary languages", "translate");
+    SECONDARY_LANG_TOGGLE("Toggle Secondary Language", "Switch between two secondary languages", "translate"),
+
+    // Text Bypass
+    BYPASS("Bypass Censor", "Insert invisible spaces between all characters", "visibility_off"),
+    BYPASS2("Bypass 2 (Mid-Word)", "Insert invisible gaps in the middle of words", "visibility_off"),
+    BYPASS3("Bypass 3 (Homoglyph)", "Replace letters with Russian look-alikes", "visibility_off"),
+    BYPASS4("Bypass 4 (Interpunct)", "Insert middle dots between characters", "visibility_off"),
+    BYPASS5("Bypass 5 (ZWNJ)", "Insert Zero-Width Non-Joiner between characters", "visibility_off"),
+
+    // Clear
+    CLEARALL("Clear All", "Select all text and delete", "delete_sweep");
 
     companion object {
         /**
@@ -150,9 +160,9 @@ enum class AvailableCommand(
             "Edit" to listOf(UNDO, REDO),
             "Cursor" to listOf(CURSOR_LEFT, CURSOR_RIGHT, CURSOR_UP, CURSOR_DOWN),
             "Navigation" to listOf(CURSOR_HOME, CURSOR_END, CURSOR_DOC_START, CURSOR_DOC_END),
-            "Words" to listOf(WORD_LEFT, WORD_RIGHT, DELETE_WORD),
+            "Words" to listOf(WORD_LEFT, WORD_RIGHT, DELETE_WORD, CLEARALL),
             "Layout" to listOf(SWITCH_FORWARD, SWITCH_BACKWARD),
-            "Text" to listOf(TEXT_ASSIST, REPLACE_TEXT, SHOW_TEXT_MENU),
+            "Text" to listOf(TEXT_ASSIST, REPLACE_TEXT, SHOW_TEXT_MENU, BYPASS, BYPASS2, BYPASS3, BYPASS4, BYPASS5),
             "Language" to listOf(PRIMARY_LANG_TOGGLE, SECONDARY_LANG_TOGGLE),
             "System" to listOf(SWITCH_IME, VOICE_INPUT)
         )

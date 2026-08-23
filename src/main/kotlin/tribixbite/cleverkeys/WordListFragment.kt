@@ -311,8 +311,13 @@ class WordListFragment : Fragment() {
 
         val wordInput = EditText(requireContext())
         wordInput.inputType = InputType.TYPE_CLASS_TEXT
-        wordInput.hint = "Enter word"
+        wordInput.hint = "Enter word / Expansion"
         layout.addView(wordInput)
+
+        val shortcutInput = EditText(requireContext())
+        shortcutInput.inputType = InputType.TYPE_CLASS_TEXT
+        shortcutInput.hint = "Shortcut / Abbreviation (Optional)"
+        layout.addView(shortcutInput)
 
         val freqInput = EditText(requireContext())
         freqInput.inputType = InputType.TYPE_CLASS_NUMBER
@@ -326,13 +331,14 @@ class WordListFragment : Fragment() {
             .setView(layout)
             .setPositiveButton("Add") { _, _ ->
                 val word = wordInput.text.toString().trim()
+                val shortcut = shortcutInput.text.toString().trim().takeIf { it.isNotEmpty() }
                 val freqText = freqInput.text.toString().trim()
                 val frequency = freqText.toIntOrNull() ?: 100
 
                 if (word.isNotBlank()) {
                     lifecycleScope.launch {
                         try {
-                            dataSource.addWord(word, frequency.coerceIn(1, 10000))
+                            dataSource.addWord(word, frequency.coerceIn(1, 10000), shortcut)
                             loadWords()
                             // Notify parent activity to refresh predictions
                             (activity as? DictionaryManagerActivity)?.refreshAllTabs()
@@ -361,10 +367,16 @@ class WordListFragment : Fragment() {
 
         val wordInput = EditText(requireContext())
         wordInput.inputType = InputType.TYPE_CLASS_TEXT
-        wordInput.hint = "Word"
+        wordInput.hint = "Word / Expansion"
         wordInput.setText(word.word)
         wordInput.selectAll()
         layout.addView(wordInput)
+
+        val shortcutInput = EditText(requireContext())
+        shortcutInput.inputType = InputType.TYPE_CLASS_TEXT
+        shortcutInput.hint = "Shortcut / Abbreviation (Optional)"
+        shortcutInput.setText(word.shortcut ?: "")
+        layout.addView(shortcutInput)
 
         val freqInput = EditText(requireContext())
         freqInput.inputType = InputType.TYPE_CLASS_NUMBER
@@ -377,13 +389,14 @@ class WordListFragment : Fragment() {
             .setView(layout)
             .setPositiveButton("Save") { _, _ ->
                 val newWord = wordInput.text.toString().trim()
+                val shortcut = shortcutInput.text.toString().trim().takeIf { it.isNotEmpty() }
                 val freqText = freqInput.text.toString().trim()
                 val newFrequency = freqText.toIntOrNull() ?: word.frequency
 
                 if (newWord.isNotBlank()) {
                     lifecycleScope.launch {
                         try {
-                            dataSource.updateWord(word.word, newWord, newFrequency.coerceIn(1, 10000))
+                            dataSource.updateWord(word.word, newWord, newFrequency.coerceIn(1, 10000), shortcut)
                             loadWords()
                             // Notify parent activity to refresh predictions
                             (activity as? DictionaryManagerActivity)?.refreshAllTabs()

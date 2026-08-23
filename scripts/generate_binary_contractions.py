@@ -160,7 +160,7 @@ def main():
     non_paired = load_non_paired_contractions(non_paired_path)
     paired = load_paired_contractions(paired_path)
     write_binary_contractions(output_path, non_paired, paired)
-    print(f"\n✓ Binary contractions generated successfully!")
+    print(f"\n[SUCCESS] Binary contractions generated successfully!")
 
 if __name__ == '__main__':
     main()
